@@ -75,7 +75,7 @@ The API is ready at `http://localhost:5001` (health check: `GET /health`).
 
 | Variable | Required | Example | Purpose |
 | --- | --- | --- | --- |
-| `PORT` | no | `5001` | Local port; Render injects its own |
+| `PORT` | no | `5001` | Local port only — on Vercel the app runs as a serverless function and never reads it |
 | `MONGODB_URI` | **yes in production** | `mongodb+srv://user:pass@cluster0.xx.mongodb.net/todo` | MongoDB Atlas connection string |
 | `CORS_ORIGINS` | recommended | `http://localhost:5173,https://your-app.netlify.app` | Comma-separated browser origins allowed to call the API; `*` or empty = allow all (dev) |
 
@@ -176,15 +176,30 @@ and a PATCH carrying only unknown fields → 400.
    the API — and the whole Part 2 integration — can be developed and tested
    without any external account, while production still requires a real URI.
 
-## Deploying the backend (Render)
+## Deploying the backend (Vercel)
+
+The backend and frontend live in **one repository** but deploy as **two
+Vercel projects** — Vercel detects them separately on import (Express +
+Vite).
 
 1. Push this repository to GitHub.
-2. On [Render](https://render.com): **New → Web Service** → pick the repo,
-   set **Root Directory** to `backend`.
-3. Build command: `npm install` · Start command: `npm start`.
-4. Add the environment variables: `MONGODB_URI` (your Atlas string) and
-   `CORS_ORIGINS=https://your-frontend.netlify.app`.
-5. Render assigns `PORT` automatically — the app uses it. Health check
-   path: `/health`.
-6. Add your Atlas network access: allow `0.0.0.0/0` (or Render's IPs) under
-   Atlas → Database Access → Network Access.
+2. On Vercel: **Add New → Project** → import the repo. When it shows the
+   detected apps, open **`backend`** → **Import single project**
+   (Root Directory `backend`; the **Express** framework is auto-detected —
+   zero configuration: Vercel finds `src/app.js`, which exports the app).
+3. Add the environment variables under *Settings → Environment Variables*:
+   - `MONGODB_URI` — your MongoDB Atlas connection string (required:
+     production refuses the in-memory fallback)
+   - `CORS_ORIGINS` — `https://your-frontend.vercel.app` (the frontend's
+     URL, once it exists; `*` works to get started)
+4. Deploy. Verify `https://<backend>.vercel.app/health` returns the JSON
+   health response.
+5. In MongoDB Atlas: **Network Access → Add IP Address → 0.0.0.0/0**
+   (Atlas blocks new connections until an IP is allowed).
+
+**How it runs on Vercel (plan challenge C13):** there is no `listen()` in
+production — the Express app itself becomes a single serverless function.
+`server.js` (the local entry point) is never loaded, so `app.js` carries a
+small middleware that connects to MongoDB before handling a request; the
+connection promise is cached at module level, so warm function instances
+reuse one connection pool instead of exhausting Atlas.

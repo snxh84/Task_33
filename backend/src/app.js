@@ -6,6 +6,7 @@ const cors = require('cors');
 const taskRoutes = require('./routes/task.routes');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
+const { connectDB } = require('./config/db');
 
 /**
  * The Express app itself — shared by the local server (server.js) and
@@ -39,7 +40,18 @@ app.use(
   })
 );
 
-// Health check — also the Render health-check path.
+// Ensure the database is connected before any request is handled (C13).
+// Locally server.js connects at startup, so this resolves from the cache
+// instantly. On Vercel the app itself is the entry point — server.js with
+// its listen() is never loaded — so this middleware is what establishes
+// (and caches, across warm invocations) the connection.
+app.use((req, res, next) => {
+  connectDB()
+    .then(() => next())
+    .catch(next);
+});
+
+// Health check — also the hosting health-check path.
 app.get('/health', (req, res) => {
   res.json({ success: true, message: 'API is healthy', data: { status: 'up' } });
 });

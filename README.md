@@ -92,6 +92,11 @@ build time).
    ISO 8601 string on the client; the server stores UTC.
 8. **No Atlas cluster while developing** → in-memory MongoDB fallback so
    everything runs locally with zero external setup.
+9. **Serverless hosting on Vercel (plan C13)** → there is no `listen()`
+   in production and `server.js` is never loaded; `app.js` carries a
+   connect-to-MongoDB middleware and `config/db.js` shares one in-flight
+   connect promise, so warm function instances reuse a single connection
+   pool instead of racing or exhausting Atlas.
 
 ## Submission layout
 

@@ -58,7 +58,7 @@ npm run dev              # http://localhost:5173
 
 | Variable | Required | Example | Purpose |
 | --- | --- | --- | --- |
-| `VITE_API_URL` | yes | `http://localhost:5001` | Base URL of the backend, **without** a trailing slash. Read at build time — set it in the hosting dashboard (Netlify/Vercel) for production builds. |
+| `VITE_API_URL` | yes | `http://localhost:5001` | Base URL of the backend, **without** a trailing slash. Read at build time — set it in the Vercel project's environment variables before deploying. |
 
 ## How the integration works
 
@@ -130,24 +130,22 @@ End-to-end against the running backend (browser + API):
    page until answered — handled during testing by accepting the dialog
    through the browser tooling before asserting the list updated.
 
-## Deployment (Netlify)
+## Deployment (Vercel)
+
+The repository holds two apps, so Vercel imports it as **two projects**
+(backend + frontend) — see the backend README for the API side.
 
 1. Push the repository to GitHub.
-2. On [Netlify](https://netlify.com): **Add new site → Import an existing
-   project** → pick the repo.
-3. Set **Base directory** to `frontend`, build command `npm run build`,
-   publish directory `frontend/dist` (or add a `netlify.toml` — see below).
-4. In **Site settings → Environment variables** add
-   `VITE_API_URL=https://your-backend.onrender.com` (the Render URL) — it
-   is read at build time, so redeploy after changing it.
-5. Once the frontend has a URL, add it to the backend's `CORS_ORIGINS`
-   environment variable on Render and restart the service.
-
-Example `netlify.toml` (place in the repo root if using Netlify):
-
-```toml
-[build]
-  base = "frontend"
-  command = "npm run build"
-  publish = "dist"
-```
+2. On Vercel: **Add New → Project** → import the repo → open
+   **`frontend`** → **Import single project**
+   (Root Directory `frontend`; the **Vite** framework is auto-detected,
+   build `npm run build`, output `dist`).
+3. In *Settings → Environment Variables* add
+   `VITE_API_URL=https://your-backend.vercel.app` (the backend project's
+   URL, no trailing slash) — it is read **at build time**, so redeploy
+   after changing it.
+4. Deploy. Once the frontend has a URL, add it to the backend project's
+   `CORS_ORIGINS` variable and redeploy the backend too.
+5. Cross-check both: the UI must load tasks from the deployed API
+   (the browser console would show a CORS error if `CORS_ORIGINS` is
+   missing the frontend's origin).
