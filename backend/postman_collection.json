@@ -1,0 +1,284 @@
+{
+  "info": {
+    "name": "To-Do List API (TD33 Part 1)",
+    "description": "All 9 endpoints from the API plan, with example requests, bodies and the error cases worth trying. Import into Postman, then set the baseUrl variable (default http://localhost:5001 — the API uses 5001 locally because macOS AirPlay Receiver occupies port 5000).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001"
+    },
+    {
+      "key": "taskId",
+      "value": "",
+      "description": "Auto-filled: run 'POST — Create a task' first, its Tests script saves the new id here."
+    }
+  ],
+  "item": [
+    {
+      "name": "Health check",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Create task — POST /tasks",
+      "item": [
+        {
+          "name": "POST — Create a task (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Returns envelope with data.id', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "  pm.expect(body.data).to.have.property('id');",
+                  "  pm.collectionVariables.set('taskId', body.data.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Buy groceries\",\n  \"description\": \"Milk, eggs, wholegrain bread\",\n  \"priority\": \"high\",\n  \"dueDate\": \"2026-10-25T18:30:00.000Z\",\n  \"category\": \"personal\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks" }
+          }
+        },
+        {
+          "name": "POST — Missing title (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"no title here\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks" }
+          }
+        },
+        {
+          "name": "POST — Unparseable dueDate (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Bad date\",\n  \"dueDate\": \"sometime soon\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks" }
+          }
+        },
+        {
+          "name": "POST — Malformed JSON (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ broken json" },
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. List tasks — GET /tasks",
+      "item": [
+        {
+          "name": "GET — All tasks (200)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks" }
+          }
+        },
+        {
+          "name": "GET — Filter by status + priority (200)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?status=pending&priority=high",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tasks"],
+              "query": [
+                { "key": "status", "value": "pending" },
+                { "key": "priority", "value": "high" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET — Search + sort + paginate (200)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?search=grocer&sort=dueDate:asc&page=1&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tasks"],
+              "query": [
+                { "key": "search", "value": "grocer" },
+                { "key": "sort", "value": "dueDate:asc" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "5" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET — Invalid status filter (400)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?status=explode",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tasks"],
+              "query": [{ "key": "status", "value": "explode" }]
+            }
+          }
+        },
+        {
+          "name": "GET — limit over cap (400)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks?limit=9999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tasks"],
+              "query": [{ "key": "limit", "value": "9999" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Single task — GET / PUT / PATCH / DELETE",
+      "item": [
+        {
+          "name": "GET — One task (200)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}" }
+          }
+        },
+        {
+          "name": "GET — Malformed id (400)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks/not-an-id" }
+          }
+        },
+        {
+          "name": "GET — Well-formed but missing (404)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks/6521f0c7a9b3c4d5e6f7a8b9" }
+          }
+        },
+        {
+          "name": "PUT — Replace whole task (200)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Buy groceries and cook dinner\",\n  \"description\": \"Milk, eggs, bread, pasta\",\n  \"completed\": false,\n  \"status\": \"in-progress\",\n  \"priority\": \"high\",\n  \"dueDate\": \"2026-10-26T18:30:00.000Z\",\n  \"category\": \"personal\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}" }
+          }
+        },
+        {
+          "name": "PUT — Without title (400, PUT needs the full resource)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"priority\": \"low\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}" }
+          }
+        },
+        {
+          "name": "PATCH — Only toggle the checkbox (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"completed\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}" }
+          }
+        },
+        {
+          "name": "PATCH — Unknown field (400, whitelist)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"hacker\": \"nice try\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}" }
+          }
+        },
+        {
+          "name": "PATCH — Toggle endpoint (200)",
+          "request": {
+            "method": "PATCH",
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}/toggle" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Delete",
+      "item": [
+        {
+          "name": "DELETE — One task (204, empty body)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}" }
+          }
+        },
+        {
+          "name": "DELETE — Again (404, already gone)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}" }
+          }
+        },
+        {
+          "name": "DELETE — Clear completed (200 + deletedCount)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks/completed" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Stats & error handling",
+      "item": [
+        {
+          "name": "GET — Statistics (200)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks/stats" }
+          }
+        },
+        {
+          "name": "DELETE — Wrong verb on collection (405)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/tasks" }
+          }
+        },
+        {
+          "name": "GET — Unknown route (404)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/nope" }
+          }
+        }
+      ]
+    }
+  ]
+}
