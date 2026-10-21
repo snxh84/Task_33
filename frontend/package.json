@@ -1,0 +1,21 @@
+{
+  "name": "todo-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "To-Do List React frontend integrated with the Express + MongoDB API (TD33 Part 2)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.4"
+  }
+}
